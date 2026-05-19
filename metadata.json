@@ -1,0 +1,6 @@
+{
+  "name": "Heater Cooler Maintenance Manager",
+  "description": "A responsive dashboard for tracking and managing maintenance schedules for hospital/industrial heater-cooler units.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

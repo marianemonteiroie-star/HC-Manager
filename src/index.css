@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #f1f5f9;
+  --color-canvas-dark: #0f172a;
+  
+  --color-surface: #ffffff;
+  --color-surface-dark: #1e293b;
+  
+  --color-border: #e2e8f0;
+  --color-border-dark: #334155;
+
+  --color-text-primary: #0f172a;
+  --color-text-primary-dark: #f8fafc;
+  
+  --color-text-muted: #64748b;
+  --color-text-muted-dark: #94a3b8;
+  
+  --color-brand: #0284c7; /* Sky 600 */
+  --color-brand-light: #38bdf8;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-text-primary antialiased font-sans transition-colors duration-200;
+  }
+  
+  .dark body {
+    @apply bg-canvas-dark text-text-primary-dark;
+  }
+}
+
+/* Custom scrollbar for data tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-neutral-300 dark:bg-neutral-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neutral-400 dark:bg-neutral-600;
+}
