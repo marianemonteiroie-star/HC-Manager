@@ -15,7 +15,7 @@ import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
 
 export function Layout({ children, activeTab, setActiveTab }: { children: React.ReactNode, activeTab: string, setActiveTab: (tab: string) => void }) {
-  const { role, setRole, theme, toggleTheme } = useMaintenance();
+  const { role, logout, theme, toggleTheme } = useMaintenance();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const tabs = [
@@ -35,7 +35,7 @@ export function Layout({ children, activeTab, setActiveTab }: { children: React.
             <Activity className="h-5 w-5" />
           </div>
           <h1 className="ml-3 text-base font-bold tracking-tight text-white uppercase">
-            HC <span className="text-brand">Manager</span>
+            Perfusion <span className="text-brand">HC</span>
           </h1>
         </div>
 
@@ -95,21 +95,18 @@ export function Layout({ children, activeTab, setActiveTab }: { children: React.
 
           {/* Global Controls */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 p-1 rounded-full border border-border dark:border-border-dark">
-              {(['Administrator', 'Operator'] as UserRole[]).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={cn(
-                    "px-3 md:px-4 py-1.5 text-xs font-semibold rounded-full transition-all",
-                    role === r 
-                      ? "bg-white dark:bg-neutral-700 shadow-sm text-brand dark:text-brand-light" 
-                      : "text-text-muted dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
-                  )}
-                >
-                  {r}
-                </button>
-              ))}
+            <div className="flex items-center gap-3 bg-neutral-100 dark:bg-neutral-800 px-4 py-1.5 rounded-full border border-border dark:border-border-dark">
+              <span className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-wider">
+                {role}
+              </span>
+              <div className="w-[1px] h-4 bg-border dark:bg-border-dark"></div>
+              <button
+                onClick={logout}
+                className="text-xs font-bold text-text-muted hover:text-rose-500 transition-colors uppercase tracking-wider flex items-center pr-1"
+                title="Log Out"
+              >
+                Logout
+              </button>
             </div>
             
             <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 text-text-muted transition-colors">
@@ -126,7 +123,7 @@ export function Layout({ children, activeTab, setActiveTab }: { children: React.
               <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                    <Activity className="h-5 w-5 text-brand" />
-                   <h1 className="text-sm font-bold text-white uppercase tracking-tight">HC Manager</h1>
+                   <h1 className="text-sm font-bold text-white uppercase tracking-tight">Perfusion HC</h1>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
                   <X className="h-5 w-5" />

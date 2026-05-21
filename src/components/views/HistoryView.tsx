@@ -123,7 +123,7 @@ export function HistoryView() {
         
         <div className="overflow-x-auto">
           <div className="hidden print:block pb-4 text-center">
-            <h1 className="text-2xl font-bold tracking-tight uppercase">Heater Cooler <span className="text-brand">Manager</span></h1>
+            <h1 className="text-2xl font-bold tracking-tight uppercase">Perfusion <span className="text-brand">HC</span></h1>
             <p className="text-text-muted font-medium mt-1 uppercase text-sm">
               Maintenance History Report
               {(startDate || endDate) && ` (${startDate || '*'} - ${endDate || '*'})`}

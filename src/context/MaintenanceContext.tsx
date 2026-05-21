@@ -13,6 +13,9 @@ interface MaintenanceContextType {
   getTaskStatus: (task: Task) => { nextDue: Date | null, remainingDays: number, status: TaskStatus };
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  isAuthenticated: boolean;
+  login: (role: UserRole) => void;
+  logout: () => void;
 }
 
 const MaintenanceContext = createContext<MaintenanceContextType | undefined>(undefined);
@@ -27,10 +30,20 @@ const initialTasks: Task[] = [
 ];
 
 export function MaintenanceProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<UserRole>('Administrator');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [role, setRole] = useState<UserRole>('Operator');
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [history, setHistory] = useState<HistoryLog[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const login = (newRole: UserRole) => {
+    setRole(newRole);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -97,7 +110,7 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
 
   return (
     <MaintenanceContext.Provider value={{
-      role, setRole, tasks, history, addTask, markTaskComplete, getTaskStatus, theme, toggleTheme
+      role, setRole, tasks, history, addTask, updateTask, markTaskComplete, getTaskStatus, theme, toggleTheme, isAuthenticated, login, logout
     }}>
       {children}
     </MaintenanceContext.Provider>
