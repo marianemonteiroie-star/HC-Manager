@@ -32,9 +32,38 @@ const initialTasks: Task[] = [
 export function MaintenanceProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [role, setRole] = useState<UserRole>('Operator');
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [history, setHistory] = useState<HistoryLog[]>([]);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const saved = localStorage.getItem('hc_tasks');
+    return saved ? JSON.parse(saved) : initialTasks;
+  });
+  
+  const [history, setHistory] = useState<HistoryLog[]>(() => {
+    const saved = localStorage.getItem('hc_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('hc_theme');
+    return (saved as 'light' | 'dark') || 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hc_tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('hc_history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem('hc_theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const login = (newRole: UserRole) => {
     setRole(newRole);
@@ -44,14 +73,6 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   const logout = () => {
     setIsAuthenticated(false);
   };
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
