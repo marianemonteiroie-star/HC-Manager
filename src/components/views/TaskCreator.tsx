@@ -14,6 +14,10 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
   const [desc, setDesc] = useState(editingTask?.description || '');
   const [dept, setDept] = useState(editingTask?.department || '');
   const [priority, setPriority] = useState<Priority>(editingTask?.priority || 'Medium');
+  // Initialize with YYYY-MM-DD for date input
+  const [lastPerformedDate, setLastPerformedDate] = useState(
+    editingTask?.lastPerformed ? new Date(editingTask.lastPerformed).toISOString().split('T')[0] : ''
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +30,12 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
 
     if (!name || !equipment || isNaN(interval) || interval <= 0 || !dept) return;
 
+    let lastPerformedIso: string | null = null;
+    if (lastPerformedDate) {
+      // Create a valid ISO string based on the selected date
+      lastPerformedIso = new Date(lastPerformedDate + 'T00:00:00').toISOString();
+    }
+
     const taskData = {
       name,
       equipment,
@@ -34,6 +44,7 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
       description: desc,
       department: dept,
       priority,
+      lastPerformed: lastPerformedIso,
     };
 
     if (editingTask) {
@@ -127,6 +138,16 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold uppercase tracking-wider text-text-muted">Last Performed Date</label>
+              <input 
+                type="date"
+                value={lastPerformedDate} 
+                onChange={e => setLastPerformedDate(e.target.value)}
+                className="w-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
             </div>
 
           </div>

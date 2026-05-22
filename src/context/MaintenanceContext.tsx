@@ -7,8 +7,8 @@ interface MaintenanceContextType {
   setRole: (role: UserRole) => void;
   tasks: Task[];
   history: HistoryLog[];
-  addTask: (task: Omit<Task, 'id' | 'lastPerformed'>) => void;
-  updateTask: (taskId: string, data: Partial<Omit<Task, 'id' | 'lastPerformed'>>) => void;
+  addTask: (task: Omit<Task, 'id'>) => void;
+  updateTask: (taskId: string, data: Partial<Omit<Task, 'id'>>) => void;
   markTaskComplete: (taskId: string, technician: string) => void;
   getTaskStatus: (task: Task) => { nextDue: Date | null, remainingDays: number, status: TaskStatus };
   theme: 'light' | 'dark';
@@ -91,16 +91,16 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     return { nextDue, remainingDays, status };
   };
 
-  const addTask = (taskData: Omit<Task, 'id' | 'lastPerformed'>) => {
+  const addTask = (taskData: Omit<Task, 'id'>) => {
     const newTask: Task = {
+      lastPerformed: null,
       ...taskData,
       id: Math.random().toString(36).substring(7),
-      lastPerformed: null,
     };
     setTasks([...tasks, newTask]);
   };
 
-  const updateTask = (taskId: string, taskData: Partial<Omit<Task, 'id' | 'lastPerformed'>>) => {
+  const updateTask = (taskId: string, taskData: Partial<Omit<Task, 'id'>>) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...taskData } : t));
   };
 
