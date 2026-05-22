@@ -9,6 +9,7 @@ interface MaintenanceContextType {
   history: HistoryLog[];
   addTask: (task: Omit<Task, 'id'>) => void;
   updateTask: (taskId: string, data: Partial<Omit<Task, 'id'>>) => void;
+  deleteTask: (taskId: string) => void;
   markTaskComplete: (taskId: string, technician: string) => void;
   getTaskStatus: (task: Task) => { nextDue: Date | null, remainingDays: number, status: TaskStatus };
   theme: 'light' | 'dark';
@@ -111,6 +112,10 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   const updateTask = (taskId: string, taskData: Partial<Omit<Task, 'id'>>) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...taskData } : t));
   };
+  
+  const deleteTask = (taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
 
   const markTaskComplete = (taskId: string, technician: string) => {
     const now = startOfDay(new Date());
@@ -139,7 +144,7 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
 
   return (
     <MaintenanceContext.Provider value={{
-      role, setRole, tasks, history, addTask, updateTask, markTaskComplete, getTaskStatus, theme, toggleTheme, isAuthenticated, login, logout
+      role, setRole, tasks, history, addTask, updateTask, deleteTask, markTaskComplete, getTaskStatus, theme, toggleTheme, isAuthenticated, login, logout
     }}>
       {children}
     </MaintenanceContext.Provider>

@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { format } from 'date-fns';
-import { Plus, Check, Clock, User, Building, AlertTriangle, Edit2, Copy } from 'lucide-react';
+import { Plus, Check, Clock, User, Building, AlertTriangle, Edit2, Copy, Trash2 } from 'lucide-react';
 import { TaskCreator } from './TaskCreator';
 import { FrequencyType, Task } from '../../types';
 import { cn } from '../../lib/utils';
 
 export function ControlPanelView() {
-  const { role, tasks, getTaskStatus, markTaskComplete, addTask } = useMaintenance();
+  const { role, tasks, getTaskStatus, markTaskComplete, addTask, deleteTask } = useMaintenance();
   const [showCreator, setShowCreator] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [completeTaskId, setCompleteTaskId] = useState<string | null>(null);
@@ -108,6 +108,17 @@ export function ControlPanelView() {
                                     title="Duplicate Task"
                                   >
                                     <Copy className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this task?')) {
+                                        deleteTask(task.id);
+                                      }
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                    title="Delete Task"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               )}
