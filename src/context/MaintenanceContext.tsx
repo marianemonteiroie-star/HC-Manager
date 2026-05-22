@@ -77,11 +77,18 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const getTaskStatus = (task: Task): { nextDue: Date | null, remainingDays: number, status: TaskStatus } => {
-    if (!task.lastPerformed) {
+    let nextDue: Date | null = null;
+    
+    if (task.manualNextDue) {
+      nextDue = parseISO(task.manualNextDue);
+    } else if (task.lastPerformed) {
+      nextDue = addDays(parseISO(task.lastPerformed), task.intervalDays);
+    }
+
+    if (!nextDue) {
       return { nextDue: null, remainingDays: 0, status: 'Expired' };
     }
-    const lastDate = parseISO(task.lastPerformed);
-    const nextDue = addDays(lastDate, task.intervalDays);
+
     const remainingDays = differenceInDays(nextDue, startOfDay(new Date()));
     
     let status: TaskStatus = 'OK';
@@ -94,6 +101,7 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   const addTask = (taskData: Omit<Task, 'id'>) => {
     const newTask: Task = {
       lastPerformed: null,
+      manualNextDue: null,
       ...taskData,
       id: Math.random().toString(36).substring(7),
     };
@@ -123,7 +131,7 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
         };
         setHistory(h => [newHistoryLog, ...h]);
 
-        return { ...t, lastPerformed: now.toISOString() };
+        return { ...t, lastPerformed: now.toISOString(), manualNextDue: null };
       }
       return t;
     }));

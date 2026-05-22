@@ -12,6 +12,7 @@ export interface Task {
   department: string;
   priority: Priority;
   lastPerformed: string | null; // ISO Date String
+  manualNextDue?: string | null; // ISO Date String
 }
 
 export interface HistoryLog {

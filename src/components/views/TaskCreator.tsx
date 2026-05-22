@@ -14,10 +14,18 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
   const [desc, setDesc] = useState(editingTask?.description || '');
   const [dept, setDept] = useState(editingTask?.department || '');
   const [priority, setPriority] = useState<Priority>(editingTask?.priority || 'Medium');
-  // Initialize with YYYY-MM-DD for date input
-  const [lastPerformedDate, setLastPerformedDate] = useState(
-    editingTask?.lastPerformed ? new Date(editingTask.lastPerformed).toISOString().split('T')[0] : ''
-  );
+  // Initialize with local time carefully to prevent timezone bugs
+  const [lastPerformedDate, setLastPerformedDate] = useState(() => {
+    if (!editingTask?.lastPerformed) return '';
+    const d = new Date(editingTask.lastPerformed);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const [manualNextDueDate, setManualNextDueDate] = useState(() => {
+    if (!editingTask?.manualNextDue) return '';
+    const d = new Date(editingTask.manualNextDue);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +40,14 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
 
     let lastPerformedIso: string | null = null;
     if (lastPerformedDate) {
-      // Create a valid ISO string based on the selected date
-      lastPerformedIso = new Date(lastPerformedDate + 'T00:00:00').toISOString();
+      const [y, m, d] = lastPerformedDate.split('-');
+      lastPerformedIso = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)).toISOString();
+    }
+
+    let manualNextDueIso: string | null = null;
+    if (manualNextDueDate) {
+      const [y, m, d] = manualNextDueDate.split('-');
+      manualNextDueIso = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)).toISOString();
     }
 
     const taskData = {
@@ -45,6 +59,7 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
       department: dept,
       priority,
       lastPerformed: lastPerformedIso,
+      manualNextDue: manualNextDueIso || null,
     };
 
     if (editingTask) {
@@ -148,6 +163,17 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
                 onChange={e => setLastPerformedDate(e.target.value)}
                 className="w-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold uppercase tracking-wider text-text-muted">Next Due Date Override</label>
+              <input 
+                type="date"
+                value={manualNextDueDate} 
+                onChange={e => setManualNextDueDate(e.target.value)}
+                className="w-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+              <p className="text-[10px] text-text-muted">Optional. Overrides automatic calculation.</p>
             </div>
 
           </div>
