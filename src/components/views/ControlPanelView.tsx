@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { format } from 'date-fns';
-import { Plus, Check, Clock, User, Building, AlertTriangle, Edit2 } from 'lucide-react';
+import { Plus, Check, Clock, User, Building, AlertTriangle, Edit2, Copy } from 'lucide-react';
 import { TaskCreator } from './TaskCreator';
 import { FrequencyType, Task } from '../../types';
 import { cn } from '../../lib/utils';
 
 export function ControlPanelView() {
-  const { role, tasks, getTaskStatus, markTaskComplete } = useMaintenance();
+  const { role, tasks, getTaskStatus, markTaskComplete, addTask } = useMaintenance();
   const [showCreator, setShowCreator] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [completeTaskId, setCompleteTaskId] = useState<string | null>(null);
@@ -27,6 +27,15 @@ export function ControlPanelView() {
   }, [tasks]);
 
   const order: FrequencyType[] = ['Daily', 'Weekly', 'Biweekly', 'Monthly', 'Custom'];
+
+  const handleDuplicateTask = (task: Task) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...taskData } = task;
+    addTask({
+      ...taskData,
+      name: `${task.name} (Copy)`
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -85,13 +94,22 @@ export function ControlPanelView() {
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-lg leading-tight">{task.name}</h4>
                               {role === 'Administrator' && (
-                                <button 
-                                  onClick={() => setEditingTask(task)} 
-                                  className="text-slate-400 hover:text-brand transition-colors p-1"
-                                  title="Edit Task"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <button 
+                                    onClick={() => setEditingTask(task)} 
+                                    className="text-slate-400 hover:text-brand transition-colors p-1"
+                                    title="Edit Task"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDuplicateTask(task)}
+                                    className="text-slate-400 hover:text-brand transition-colors p-1"
+                                    title="Duplicate Task"
+                                  >
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-2 text-xs text-text-muted">
