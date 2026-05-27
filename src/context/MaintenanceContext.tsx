@@ -64,20 +64,66 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     signInAnonymously(auth).then(() => {
       setDbReady(true);
-    }).catch(console.error);
+    }).catch((err) => {
+      console.error('Firebase Auth failed, proceeding anyway:', err);
+      setDbReady(true);
+    });
   }, []);
 
   useEffect(() => {
     if (!dbReady) return;
 
-    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
-      if (snapshot.empty && categories.length === 0) {
-        // Seed initial data if empty
-        const localCats = localStorage.getItem('hc_categories');
-        const catsToSeed = localCats ? JSON.parse(localCats) : initialCategories;
+    const performMigration = async () => {
+      const migrated = localStorage.getItem('hc_firebase_migrated_v6');
+      if (!migrated) {
+        try {
+          const batch = writeBatch(db);
+          let hasDataToMigrate = false;
 
+          const localCats = localStorage.getItem('hc_categories');
+          if (localCats && localCats !== 'undefined') {
+            const catsToSeed = JSON.parse(localCats);
+            if (Array.isArray(catsToSeed) && catsToSeed.length > 0) {
+              catsToSeed.forEach((c: Category) => batch.set(doc(db, 'categories', c.id), c));
+              hasDataToMigrate = true;
+            }
+          }
+          
+          const localTasks = localStorage.getItem('hc_tasks');
+          if (localTasks && localTasks !== 'undefined') {
+            const tasksToSeed = JSON.parse(localTasks);
+            if (Array.isArray(tasksToSeed) && tasksToSeed.length > 0) {
+              tasksToSeed.forEach((t: Task) => batch.set(doc(db, 'tasks', t.id), t));
+              hasDataToMigrate = true;
+            }
+          }
+
+          const localHistory = localStorage.getItem('hc_history');
+          if (localHistory && localHistory !== 'undefined') {
+            const historyToSeed = JSON.parse(localHistory);
+            if (Array.isArray(historyToSeed) && historyToSeed.length > 0) {
+              historyToSeed.forEach((h: HistoryLog) => batch.set(doc(db, 'history', h.id), h));
+              hasDataToMigrate = true;
+            }
+          }
+
+          if (hasDataToMigrate) {
+            await batch.commit();
+          }
+          localStorage.setItem('hc_firebase_migrated_v6', 'true');
+        } catch (error) {
+          console.error('Migration failed', error);
+          // Let it retry on next load if failed
+        }
+      }
+    };
+
+    performMigration();
+
+    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+      if (snapshot.empty && categories.length === 0 && (!localStorage.getItem('hc_categories') || localStorage.getItem('hc_categories') === 'undefined' || localStorage.getItem('hc_categories') === '[]')) {
         const batch = writeBatch(db);
-        catsToSeed.forEach((c: Category) => {
+        initialCategories.forEach((c: Category) => {
           batch.set(doc(db, 'categories', c.id), c);
         });
         batch.commit();
@@ -89,12 +135,9 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     });
 
     const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
-      if (snapshot.empty && tasks.length === 0) {
-        const localTasks = localStorage.getItem('hc_tasks');
-        const tasksToSeed = localTasks ? JSON.parse(localTasks) : initialTasks;
-
+      if (snapshot.empty && tasks.length === 0 && (!localStorage.getItem('hc_tasks') || localStorage.getItem('hc_tasks') === 'undefined' || localStorage.getItem('hc_tasks') === '[]')) {
         const batch = writeBatch(db);
-        tasksToSeed.forEach((t: Task) => {
+        initialTasks.forEach((t: Task) => {
           batch.set(doc(db, 'tasks', t.id), t);
         });
         batch.commit();
@@ -106,23 +149,10 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     });
 
     const unsubHistory = onSnapshot(collection(db, 'history'), (snapshot) => {
-      if (snapshot.empty && history.length === 0) {
-        const localHistory = localStorage.getItem('hc_history');
-        if (localHistory) {
-          const historyToSeed = JSON.parse(localHistory);
-          const batch = writeBatch(db);
-          historyToSeed.forEach((h: HistoryLog) => {
-            batch.set(doc(db, 'history', h.id), h);
-          });
-          batch.commit();
-        }
-      } else {
-        const hist: HistoryLog[] = [];
-        snapshot.forEach(doc => hist.push({ id: doc.id, ...doc.data() } as HistoryLog));
-        // Sort history descending by performedAt
-        hist.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
-        setHistory(hist);
-      }
+      const hist: HistoryLog[] = [];
+      snapshot.forEach(doc => hist.push({ id: doc.id, ...doc.data() } as HistoryLog));
+      hist.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+      setHistory(hist);
     });
 
     return () => {
