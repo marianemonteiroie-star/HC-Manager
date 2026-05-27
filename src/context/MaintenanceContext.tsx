@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Task, HistoryLog, UserRole, TaskStatus, Category } from '../types';
 import { addDays, differenceInDays, startOfDay, parseISO } from 'date-fns';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const auth = getAuth(app);
 
 interface MaintenanceContextType {
   role: UserRole;
@@ -42,21 +50,11 @@ const initialTasks: Task[] = [
 export function MaintenanceProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [role, setRole] = useState<UserRole>('Operator');
+  const [dbReady, setDbReady] = useState(false);
   
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('hc_categories');
-    return saved ? JSON.parse(saved) : initialCategories;
-  });
-
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('hc_tasks');
-    return saved ? JSON.parse(saved) : initialTasks;
-  });
-  
-  const [history, setHistory] = useState<HistoryLog[]>(() => {
-    const saved = localStorage.getItem('hc_history');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [history, setHistory] = useState<HistoryLog[]>([]);
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('hc_theme');
@@ -64,16 +62,57 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
   });
 
   useEffect(() => {
-    localStorage.setItem('hc_categories', JSON.stringify(categories));
-  }, [categories]);
+    signInAnonymously(auth).then(() => {
+      setDbReady(true);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('hc_tasks', JSON.stringify(tasks));
-  }, [tasks]);
+    if (!dbReady) return;
 
-  useEffect(() => {
-    localStorage.setItem('hc_history', JSON.stringify(history));
-  }, [history]);
+    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+      if (snapshot.empty && categories.length === 0) {
+        // Seed initial data if empty
+        const batch = writeBatch(db);
+        initialCategories.forEach(c => {
+          batch.set(doc(db, 'categories', c.id), c);
+        });
+        batch.commit();
+      } else {
+        const cats: Category[] = [];
+        snapshot.forEach(doc => cats.push({ id: doc.id, ...doc.data() } as Category));
+        setCategories(cats);
+      }
+    });
+
+    const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      if (snapshot.empty && tasks.length === 0) {
+        const batch = writeBatch(db);
+        initialTasks.forEach(t => {
+          batch.set(doc(db, 'tasks', t.id), t);
+        });
+        batch.commit();
+      } else {
+        const ts: Task[] = [];
+        snapshot.forEach(doc => ts.push({ id: doc.id, ...doc.data() } as Task));
+        setTasks(ts);
+      }
+    });
+
+    const unsubHistory = onSnapshot(collection(db, 'history'), (snapshot) => {
+      const hist: HistoryLog[] = [];
+      snapshot.forEach(doc => hist.push({ id: doc.id, ...doc.data() } as HistoryLog));
+      // Sort history descending by performedAt
+      hist.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+      setHistory(hist);
+    });
+
+    return () => {
+      unsubCategories();
+      unsubTasks();
+      unsubHistory();
+    };
+  }, [dbReady]);
 
   useEffect(() => {
     localStorage.setItem('hc_theme', theme);
@@ -117,60 +156,63 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     return { nextDue, remainingDays, status };
   };
 
-  const addCategory = (name: string) => {
-    setCategories(prev => [...prev, { id: Math.random().toString(36).substring(7), name }]);
+  const addCategory = async (name: string) => {
+    const id = Math.random().toString(36).substring(7);
+    await setDoc(doc(db, 'categories', id), { name });
   };
 
-  const updateCategory = (id: string, name: string) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+  const updateCategory = async (id: string, name: string) => {
+    await updateDoc(doc(db, 'categories', id), { name });
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    // Optionally alert if tasks use it, or clean them up. We'll simply let them be orphan or filter out.
+  const deleteCategory = async (id: string) => {
+    await deleteDoc(doc(db, 'categories', id));
   };
 
-  const addTask = (taskData: Omit<Task, 'id'>) => {
-    const newTask: Task = {
+  const addTask = async (taskData: Omit<Task, 'id'>) => {
+    const id = Math.random().toString(36).substring(7);
+    const newTask = {
       lastPerformed: null,
       manualNextDue: null,
       ...taskData,
-      id: Math.random().toString(36).substring(7),
     };
-    setTasks([...tasks, newTask]);
+    await setDoc(doc(db, 'tasks', id), newTask);
   };
 
-  const updateTask = (taskId: string, taskData: Partial<Omit<Task, 'id'>>) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...taskData } : t));
+  const updateTask = async (taskId: string, taskData: Partial<Omit<Task, 'id'>>) => {
+    await updateDoc(doc(db, 'tasks', taskId), taskData);
   };
   
-  const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+  const deleteTask = async (taskId: string) => {
+    await deleteDoc(doc(db, 'tasks', taskId));
   };
 
-  const markTaskComplete = (taskId: string, technician: string) => {
-    const now = startOfDay(new Date());
-    
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        const oldStatus = getTaskStatus(t).status;
-        const category = categories.find(c => c.id === t.categoryId);
-        
-        const newHistoryLog: HistoryLog = {
-          id: Math.random().toString(36).substring(7),
-          taskId: t.id,
-          taskName: t.name,
-          categoryName: category ? category.name : 'Unknown Category',
-          performedAt: now.toISOString(),
-          technician: technician || 'Unknown Tech',
-          statusAtExecution: oldStatus
-        };
-        setHistory(h => [newHistoryLog, ...h]);
+  const markTaskComplete = async (taskId: string, technician: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-        return { ...t, lastPerformed: now.toISOString(), manualNextDue: null };
-      }
-      return t;
-    }));
+    const now = startOfDay(new Date());
+    const oldStatus = getTaskStatus(task).status;
+    const category = categories.find(c => c.id === task.categoryId);
+
+    const historyId = Math.random().toString(36).substring(7);
+    const newHistoryLog = {
+      taskId: task.id,
+      taskName: task.name,
+      categoryName: category ? category.name : 'Unknown Category',
+      performedAt: now.toISOString(),
+      technician: technician || 'Unknown Tech',
+      statusAtExecution: oldStatus
+    };
+
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'history', historyId), newHistoryLog);
+    batch.update(doc(db, 'tasks', taskId), {
+      lastPerformed: now.toISOString(),
+      manualNextDue: null
+    });
+
+    await batch.commit();
   };
 
   return (
@@ -187,3 +229,4 @@ export const useMaintenance = () => {
   if (!ctx) throw new Error('useMaintenance must be used within MaintenanceProvider');
   return ctx;
 };
+

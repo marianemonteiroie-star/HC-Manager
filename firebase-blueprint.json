@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Equipment category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Maintenance task",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "frequencyLabel": { "type": "string" },
+        "intervalDays": { "type": "number" },
+        "description": { "type": "string" },
+        "department": { "type": "string" },
+        "priority": { "type": "string" },
+        "lastPerformed": { "type": ["string", "null"] },
+        "manualNextDue": { "type": ["string", "null"] }
+      },
+      "required": ["name", "categoryId", "frequencyLabel", "intervalDays", "description", "department", "priority"]
+    },
+    "HistoryLog": {
+      "title": "HistoryLog",
+      "description": "Log of performed task",
+      "type": "object",
+      "properties": {
+        "taskId": { "type": "string" },
+        "taskName": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "performedAt": { "type": "string" },
+        "technician": { "type": "string" },
+        "statusAtExecution": { "type": "string" }
+      },
+      "required": ["taskId", "taskName", "categoryName", "performedAt", "technician", "statusAtExecution"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Categories collection"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks collection"
+    },
+    "/history/{historyId}": {
+      "schema": { "$ref": "#/entities/HistoryLog" },
+      "description": "History logs collection"
+    }
+  }
+}
