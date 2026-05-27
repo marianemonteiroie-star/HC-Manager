@@ -3,7 +3,7 @@ import { Task, HistoryLog, UserRole, TaskStatus, Category } from '../types';
 import { addDays, differenceInDays, startOfDay, parseISO } from 'date-fns';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -73,8 +73,11 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
       if (snapshot.empty && categories.length === 0) {
         // Seed initial data if empty
+        const localCats = localStorage.getItem('hc_categories');
+        const catsToSeed = localCats ? JSON.parse(localCats) : initialCategories;
+
         const batch = writeBatch(db);
-        initialCategories.forEach(c => {
+        catsToSeed.forEach((c: Category) => {
           batch.set(doc(db, 'categories', c.id), c);
         });
         batch.commit();
@@ -87,8 +90,11 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
 
     const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
       if (snapshot.empty && tasks.length === 0) {
+        const localTasks = localStorage.getItem('hc_tasks');
+        const tasksToSeed = localTasks ? JSON.parse(localTasks) : initialTasks;
+
         const batch = writeBatch(db);
-        initialTasks.forEach(t => {
+        tasksToSeed.forEach((t: Task) => {
           batch.set(doc(db, 'tasks', t.id), t);
         });
         batch.commit();
@@ -100,11 +106,23 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     });
 
     const unsubHistory = onSnapshot(collection(db, 'history'), (snapshot) => {
-      const hist: HistoryLog[] = [];
-      snapshot.forEach(doc => hist.push({ id: doc.id, ...doc.data() } as HistoryLog));
-      // Sort history descending by performedAt
-      hist.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
-      setHistory(hist);
+      if (snapshot.empty && history.length === 0) {
+        const localHistory = localStorage.getItem('hc_history');
+        if (localHistory) {
+          const historyToSeed = JSON.parse(localHistory);
+          const batch = writeBatch(db);
+          historyToSeed.forEach((h: HistoryLog) => {
+            batch.set(doc(db, 'history', h.id), h);
+          });
+          batch.commit();
+        }
+      } else {
+        const hist: HistoryLog[] = [];
+        snapshot.forEach(doc => hist.push({ id: doc.id, ...doc.data() } as HistoryLog));
+        // Sort history descending by performedAt
+        hist.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+        setHistory(hist);
+      }
     });
 
     return () => {
