@@ -5,10 +5,11 @@ import { DashboardView } from './components/views/DashboardView';
 import { ControlPanelView } from './components/views/ControlPanelView';
 import { HistoryView } from './components/views/HistoryView';
 import { CalendarView } from './components/views/CalendarView';
+import { CategoriesView } from './components/views/CategoriesView';
 import { LoginView } from './components/views/LoginView';
 
 function AppContent() {
-  const { isAuthenticated } = useMaintenance();
+  const { isAuthenticated, role } = useMaintenance();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   if (!isAuthenticated) {
@@ -22,6 +23,7 @@ function AppContent() {
         {activeTab === 'tasks' && <ControlPanelView />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'calendar' && <CalendarView />}
+        {activeTab === 'categories' && role === 'Administrator' && <CategoriesView />}
       </div>
     </Layout>
   );

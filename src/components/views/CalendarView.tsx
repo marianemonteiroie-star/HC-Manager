@@ -70,7 +70,7 @@ export function CalendarView() {
                           </div>
                           <div>
                             <h4 className="font-semibold">{item.task.name}</h4>
-                            <p className="text-xs text-text-muted">{item.task.equipment} · {item.task.department} · {item.task.frequencyLabel} Routine</p>
+                            <p className="text-xs text-text-muted">{item.task.department} · {item.task.frequencyLabel} Routine</p>
                           </div>
                         </div>
                         <Badge status={item.status as any}>{item.status}</Badge>

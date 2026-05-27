@@ -6,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { format } from 'date-fns';
 
 export function DashboardView() {
-  const { tasks, history, getTaskStatus } = useMaintenance();
+  const { tasks, history, categories, getTaskStatus } = useMaintenance();
 
   const stats = useMemo(() => {
     let completed = history.length;
@@ -15,13 +15,14 @@ export function DashboardView() {
     let nextScheduled: Date | null = null;
     
     let statusCounts = { 'OK': 0, 'Due Soon': 0, 'Expired': 0 };
-    let freqCounts: Record<string, number> = {};
+    let categoryCounts: Record<string, number> = {};
 
     tasks.forEach(t => {
       const { nextDue, remainingDays, status } = getTaskStatus(t);
+      const catName = categories.find(c => c.id === t.categoryId)?.name || 'Uncategorized';
       
       statusCounts[status]++;
-      freqCounts[t.frequencyLabel] = (freqCounts[t.frequencyLabel] || 0) + 1;
+      categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
 
       if (status === 'Expired') overdue++;
       if (status === 'Due Soon') upcoming++;
@@ -39,13 +40,13 @@ export function DashboardView() {
       { name: 'Expired', value: statusCounts['Expired'], color: '#f43f5e' },
     ];
 
-    const freqData = Object.keys(freqCounts).map(key => ({
+    const catData = Object.keys(categoryCounts).map(key => ({
       name: key,
-      value: freqCounts[key]
+      value: categoryCounts[key]
     }));
 
-    return { completed, upcoming, overdue, nextScheduled, statusData, freqData };
-  }, [tasks, history, getTaskStatus]);
+    return { completed, upcoming, overdue, nextScheduled, statusData, catData };
+  }, [tasks, history, getTaskStatus, categories]);
 
   return (
     <div className="space-y-6">
@@ -125,11 +126,11 @@ export function DashboardView() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tasks by Frequency</CardTitle>
+            <CardTitle>Tasks by Category</CardTitle>
           </CardHeader>
           <CardContent className="h-80 pb-12">
              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.freqData} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
+                <BarChart data={stats.catData} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />

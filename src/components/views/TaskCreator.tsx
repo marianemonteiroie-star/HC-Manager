@@ -5,10 +5,10 @@ import { Button } from '../ui/Button';
 import { Priority, FrequencyType, Task } from '../../types';
 
 export function TaskCreator({ onClose, editingTask }: { onClose: () => void, editingTask?: Task }) {
-  const { addTask, updateTask } = useMaintenance();
+  const { addTask, updateTask, categories } = useMaintenance();
   
   const [name, setName] = useState(editingTask?.name || '');
-  const [equipment, setEquipment] = useState(editingTask?.equipment || 'HCU-001');
+  const [categoryId, setCategoryId] = useState(editingTask?.categoryId || (categories.length > 0 ? categories[0].id : ''));
   const [freq, setFreq] = useState<FrequencyType>(editingTask?.frequencyLabel || 'Weekly');
   const [customInterval, setCustomInterval] = useState(editingTask?.intervalDays.toString() || '7');
   const [desc, setDesc] = useState(editingTask?.description || '');
@@ -36,7 +36,7 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
     if (freq === 'Biweekly') interval = 14;
     if (freq === 'Monthly') interval = 30;
 
-    if (!name || !equipment || isNaN(interval) || interval <= 0 || !dept) return;
+    if (!name || !categoryId || isNaN(interval) || interval <= 0 || !dept) return;
 
     let lastPerformedIso: string | null = null;
     if (lastPerformedDate) {
@@ -52,7 +52,7 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
 
     const taskData = {
       name,
-      equipment,
+      categoryId,
       frequencyLabel: freq,
       intervalDays: interval,
       description: desc,
@@ -92,14 +92,18 @@ export function TaskCreator({ onClose, editingTask }: { onClose: () => void, edi
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold uppercase tracking-wider text-text-muted">Machine / Equipment ID</label>
-              <input 
+              <label className="text-sm font-semibold uppercase tracking-wider text-text-muted">Machine Category</label>
+              <select 
                 required 
-                value={equipment} 
-                onChange={e => setEquipment(e.target.value)}
-                className="w-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand" 
-                placeholder="e.g. HCU-001" 
-              />
+                value={categoryId} 
+                onChange={e => setCategoryId(e.target.value)}
+                className="w-full bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <option value="" disabled>Select Category</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             </div>
             
             <div className="space-y-2">

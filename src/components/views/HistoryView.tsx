@@ -38,11 +38,11 @@ export function HistoryView() {
   const uniqueStatuses = Array.from(new Set(history.map(h => h.statusAtExecution)));
 
   const handleExportCSV = () => {
-    const headers = ['Log ID', 'Task Name', 'Equipment', 'Technician', 'Status at Execution', 'Performed At'];
+    const headers = ['Log ID', 'Task Name', 'Category', 'Technician', 'Status at Execution', 'Performed At'];
     const rows = filteredHistory.map(log => [
       log.id,
       `"${log.taskName}"`,
-      `"${log.equipment}"`,
+      `"${log.categoryName}"`,
       `"${log.technician}"`,
       log.statusAtExecution,
       format(new Date(log.performedAt), 'yyyy-MM-dd HH:mm')
@@ -56,6 +56,7 @@ export function HistoryView() {
     link.click();
     document.body.removeChild(link);
   };
+
 
   const handlePrint = () => {
     setShowExportModal(false);
@@ -134,7 +135,7 @@ export function HistoryView() {
               <tr>
                 <th className="px-4 py-3">Log ID</th>
                 <th className="px-4 py-3">Task Name</th>
-                <th className="px-4 py-3">Equipment</th>
+                <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Technician</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Performed At</th>
@@ -152,7 +153,7 @@ export function HistoryView() {
                   <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="px-4 py-3 font-mono text-text-muted">{log.id}</td>
                     <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{log.taskName}</td>
-                    <td className="px-4 py-3 font-medium text-slate-500">{log.equipment}</td>
+                    <td className="px-4 py-3 font-medium text-slate-500">{log.categoryName}</td>
                     <td className="px-4 py-3 text-slate-500">{log.technician}</td>
                     <td className="px-4 py-3">
                       <Badge status={log.statusAtExecution}>{log.statusAtExecution}</Badge>

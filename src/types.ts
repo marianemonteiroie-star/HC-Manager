@@ -1,3 +1,8 @@
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export type Priority = 'Low' | 'Medium' | 'High';
 
 export type FrequencyType = 'Daily' | 'Weekly' | 'Biweekly' | 'Monthly' | 'Custom';
@@ -5,7 +10,7 @@ export type FrequencyType = 'Daily' | 'Weekly' | 'Biweekly' | 'Monthly' | 'Custo
 export interface Task {
   id: string;
   name: string;
-  equipment: string;
+  categoryId: string;
   frequencyLabel: FrequencyType;
   intervalDays: number;
   description: string;
@@ -19,7 +24,7 @@ export interface HistoryLog {
   id: string;
   taskId: string;
   taskName: string;
-  equipment: string;
+  categoryName: string;
   performedAt: string; // ISO Date String
   technician: string;
   statusAtExecution: 'OK' | 'Due Soon' | 'Expired';

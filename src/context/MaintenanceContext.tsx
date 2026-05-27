@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { Task, HistoryLog, UserRole, TaskStatus } from '../types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Task, HistoryLog, UserRole, TaskStatus, Category } from '../types';
 import { addDays, differenceInDays, startOfDay, parseISO } from 'date-fns';
 
 interface MaintenanceContextType {
@@ -7,6 +7,10 @@ interface MaintenanceContextType {
   setRole: (role: UserRole) => void;
   tasks: Task[];
   history: HistoryLog[];
+  categories: Category[];
+  addCategory: (name: string) => void;
+  updateCategory: (id: string, name: string) => void;
+  deleteCategory: (id: string) => void;
   addTask: (task: Omit<Task, 'id'>) => void;
   updateTask: (taskId: string, data: Partial<Omit<Task, 'id'>>) => void;
   deleteTask: (taskId: string) => void;
@@ -22,18 +26,28 @@ interface MaintenanceContextType {
 const MaintenanceContext = createContext<MaintenanceContextType | undefined>(undefined);
 
 // Initial Seed Data
+const initialCategories: Category[] = [
+  { id: 'c1', name: 'Heater Cooler' },
+  { id: 'c2', name: 'ACT machine' },
+  { id: 'c3', name: 'TEG machine' },
+  { id: 'c4', name: 'HLM' }
+];
+
 const initialTasks: Task[] = [
-  { id: 't1', name: 'H2O2 Check', equipment: 'HCU-001', frequencyLabel: 'Daily', intervalDays: 1, description: 'Check hydrogen peroxide levels', department: 'Clinical', priority: 'High', lastPerformed: startOfDay(new Date()).toISOString() },
-  { id: 't2', name: 'Aerosol Kit', equipment: 'HCU-001', frequencyLabel: 'Weekly', intervalDays: 7, description: 'Inspect and replace if necessary', department: 'Maintenance', priority: 'Medium', lastPerformed: startOfDay(addDays(new Date(), -5)).toISOString() },
-  { id: 't3', name: 'Water Changing', equipment: 'HCU-002', frequencyLabel: 'Weekly', intervalDays: 7, description: 'Drain and refill water circuits', department: 'Maintenance', priority: 'High', lastPerformed: startOfDay(addDays(new Date(), -8)).toISOString() },
-  { id: 't4', name: 'Cleaning Date', equipment: 'HCU-003', frequencyLabel: 'Biweekly', intervalDays: 14, description: 'Deep clean external chassis', department: 'Sanitation', priority: 'Low', lastPerformed: null },
-  { id: 't5', name: 'Water Filter', equipment: 'HCU-001', frequencyLabel: 'Monthly', intervalDays: 30, description: 'Replace internal water filter', department: 'Maintenance', priority: 'High', lastPerformed: startOfDay(addDays(new Date(), -28)).toISOString() },
+  { id: 't1', name: 'H2O2 Check', categoryId: 'c1', frequencyLabel: 'Daily', intervalDays: 1, description: 'Check hydrogen peroxide levels', department: 'Clinical', priority: 'High', lastPerformed: startOfDay(new Date()).toISOString() },
+  { id: 't2', name: 'Calibration', categoryId: 'c2', frequencyLabel: 'Weekly', intervalDays: 7, description: 'Inspect and calibrate', department: 'Maintenance', priority: 'Medium', lastPerformed: startOfDay(addDays(new Date(), -5)).toISOString() },
+  { id: 't3', name: 'Water Changing', categoryId: 'c1', frequencyLabel: 'Weekly', intervalDays: 7, description: 'Drain and refill water circuits', department: 'Maintenance', priority: 'High', lastPerformed: startOfDay(addDays(new Date(), -8)).toISOString() }
 ];
 
 export function MaintenanceProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [role, setRole] = useState<UserRole>('Operator');
   
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const saved = localStorage.getItem('hc_categories');
+    return saved ? JSON.parse(saved) : initialCategories;
+  });
+
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('hc_tasks');
     return saved ? JSON.parse(saved) : initialTasks;
@@ -48,6 +62,10 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     const saved = localStorage.getItem('hc_theme');
     return (saved as 'light' | 'dark') || 'light';
   });
+
+  useEffect(() => {
+    localStorage.setItem('hc_categories', JSON.stringify(categories));
+  }, [categories]);
 
   useEffect(() => {
     localStorage.setItem('hc_tasks', JSON.stringify(tasks));
@@ -99,6 +117,19 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     return { nextDue, remainingDays, status };
   };
 
+  const addCategory = (name: string) => {
+    setCategories(prev => [...prev, { id: Math.random().toString(36).substring(7), name }]);
+  };
+
+  const updateCategory = (id: string, name: string) => {
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+  };
+
+  const deleteCategory = (id: string) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+    // Optionally alert if tasks use it, or clean them up. We'll simply let them be orphan or filter out.
+  };
+
   const addTask = (taskData: Omit<Task, 'id'>) => {
     const newTask: Task = {
       lastPerformed: null,
@@ -122,14 +153,14 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
     
     setTasks(prev => prev.map(t => {
       if (t.id === taskId) {
-        // Record history before we update the task (so we know its status prior to execution)
         const oldStatus = getTaskStatus(t).status;
+        const category = categories.find(c => c.id === t.categoryId);
         
         const newHistoryLog: HistoryLog = {
           id: Math.random().toString(36).substring(7),
           taskId: t.id,
           taskName: t.name,
-          equipment: t.equipment,
+          categoryName: category ? category.name : 'Unknown Category',
           performedAt: now.toISOString(),
           technician: technician || 'Unknown Tech',
           statusAtExecution: oldStatus
@@ -144,7 +175,7 @@ export function MaintenanceProvider({ children }: { children: React.ReactNode })
 
   return (
     <MaintenanceContext.Provider value={{
-      role, setRole, tasks, history, addTask, updateTask, deleteTask, markTaskComplete, getTaskStatus, theme, toggleTheme, isAuthenticated, login, logout
+      role, setRole, tasks, history, categories, addCategory, updateCategory, deleteCategory, addTask, updateTask, deleteTask, markTaskComplete, getTaskStatus, theme, toggleTheme, isAuthenticated, login, logout
     }}>
       {children}
     </MaintenanceContext.Provider>

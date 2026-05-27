@@ -1,6 +1,6 @@
 {
-  "name": "Heater Cooler Maintenance Manager",
-  "description": "A responsive dashboard for tracking and managing maintenance schedules for hospital/industrial heater-cooler units.",
+  "name": "Perfusion Care",
+  "description": "A responsive dashboard for tracking and managing maintenance schedules for hospital perfusion units (Heater Cooler, ACT machine, TEG machine, HLM, etc.).",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -9,7 +9,8 @@ import {
   Menu,
   Moon,
   Sun,
-  X
+  X,
+  FolderTree
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UserRole } from '../../types';
@@ -23,6 +24,7 @@ export function Layout({ children, activeTab, setActiveTab }: { children: React.
     { id: 'tasks', label: 'Control Panel', icon: Settings2 },
     { id: 'history', label: 'History', icon: ClipboardList },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    ...(role === 'Administrator' ? [{ id: 'categories', label: 'Categories', icon: FolderTree }] : []),
   ];
 
   return (
@@ -123,7 +125,7 @@ export function Layout({ children, activeTab, setActiveTab }: { children: React.
               <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                    <Activity className="h-5 w-5 text-brand" />
-                   <h1 className="text-sm font-bold text-white uppercase tracking-tight">Perfusion HC</h1>
+                    <h1 className="text-sm font-bold text-white uppercase tracking-tight">Perfusion Care</h1>
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
                   <X className="h-5 w-5" />

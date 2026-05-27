@@ -6,27 +6,33 @@ import { Badge } from '../ui/Badge';
 import { format } from 'date-fns';
 import { Plus, Check, Clock, User, Building, AlertTriangle, Edit2, Copy, Trash2 } from 'lucide-react';
 import { TaskCreator } from './TaskCreator';
-import { FrequencyType, Task } from '../../types';
+import { FrequencyType, Task, Category } from '../../types';
 import { cn } from '../../lib/utils';
 
 export function ControlPanelView() {
-  const { role, tasks, getTaskStatus, markTaskComplete, addTask, deleteTask } = useMaintenance();
+  const { role, tasks, categories, getTaskStatus, markTaskComplete, addTask, deleteTask, updateTask } = useMaintenance();
   const [showCreator, setShowCreator] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [completeTaskId, setCompleteTaskId] = useState<string | null>(null);
   const [techName, setTechName] = useState('');
 
-  // Group tasks by frequency
+  // Group tasks by category
   const groupedTasks = useMemo(() => {
-    const groups: Record<string, typeof tasks> = {};
+    const groups: Record<string, Task[]> = {};
+    const ungrouped: Task[] = [];
+    
     tasks.forEach(t => {
-      if (!groups[t.frequencyLabel]) groups[t.frequencyLabel] = [];
-      groups[t.frequencyLabel].push(t);
+      const category = categories.find(c => c.id === t.categoryId);
+      if (category) {
+        if (!groups[category.id]) groups[category.id] = [];
+        groups[category.id].push(t);
+      } else {
+        ungrouped.push(t);
+      }
     });
-    return groups;
-  }, [tasks]);
 
-  const order: FrequencyType[] = ['Daily', 'Weekly', 'Biweekly', 'Monthly', 'Custom'];
+    return { groups, ungrouped };
+  }, [tasks, categories]);
 
   const handleDuplicateTask = (task: Task) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -42,13 +48,15 @@ export function ControlPanelView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Control Panel</h2>
-          <p className="text-text-muted mt-1">Execute and monitor maintenance procedures.</p>
+          <p className="text-text-muted mt-1">Execute and monitor maintenance procedures by category.</p>
         </div>
         
         {role === 'Administrator' && (
-          <Button onClick={() => setShowCreator(!showCreator)}>
-            {showCreator ? 'Cancel' : <><Plus className="h-4 w-4 mr-2" /> New Task</>}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreator(!showCreator)}>
+              {showCreator ? 'Cancel' : <><Plus className="h-4 w-4 mr-2" /> New Task</>}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -67,25 +75,25 @@ export function ControlPanelView() {
       )}
 
       <div className="grid gap-8">
-        {order.map(freq => {
-          const freqTasks = groupedTasks[freq];
-          if (!freqTasks || freqTasks.length === 0) return null;
+        {[...categories, { id: 'ungrouped', name: 'Other / Uncategorized' }].map(cat => {
+          const catTasks = cat.id === 'ungrouped' ? groupedTasks.ungrouped : groupedTasks.groups[cat.id];
+          if (!catTasks || catTasks.length === 0) return null;
 
           return (
-            <div key={freq} className="space-y-4">
-              <h3 className="text-xl font-semibold border-b border-border dark:border-border-dark pb-2 flex items-center gap-2">
-                {freq} Routines
-                <Badge variant="outline" className="ml-2">{freqTasks.length}</Badge>
+            <div key={cat.id} className="space-y-4">
+              <h3 className="text-xl font-semibold border-b border-border dark:border-border-dark pb-2 flex items-center gap-2 text-brand">
+                {cat.name}
+                <Badge variant="outline" className="ml-2 bg-brand/5">{catTasks.length}</Badge>
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {freqTasks.map(task => {
+                {catTasks.map(task => {
                   const { nextDue, remainingDays, status } = getTaskStatus(task);
                   const isExpired = remainingDays < 0;
                   
                   return (
-                    <Card key={task.id} className={cn("flex flex-col border-l-4 transition-all hover:shadow-md h-full", 
-                      isExpired ? "border-rose-200 shadow-md shadow-rose-50/50" : "border-l-transparent hover:border-l-brand"
+                    <Card key={task.id} className={cn("flex flex-col border-l-4 transition-all hover:shadow-md h-full bg-white dark:bg-slate-900", 
+                      isExpired ? "border-rose-300 shadow-sm shadow-rose-50/50" : "border-l-transparent hover:border-l-brand"
                     )}>
                       <CardContent className="p-5 flex-1 flex flex-col h-full">
                         
@@ -125,8 +133,26 @@ export function ControlPanelView() {
                             </div>
                             <div className="flex items-center gap-2 mt-2 text-xs text-text-muted">
                               <Building className="h-3.5 w-3.5" />
-                              {task.equipment} • {task.department}
+                              {task.department} • {task.frequencyLabel}
                             </div>
+                            {role === 'Administrator' && (
+                              <div className="mt-3">
+                                <select
+                                  value={task.categoryId || ''}
+                                  onChange={e => {
+                                    if (e.target.value) {
+                                      updateTask(task.id, { categoryId: e.target.value });
+                                    }
+                                  }}
+                                  className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-brand text-slate-600 dark:text-slate-300"
+                                >
+                                  <option value="" disabled>Uncategorized</option>
+                                  {categories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
                           </div>
                           <Badge status={status}>{status}</Badge>
                         </div>
@@ -160,7 +186,7 @@ export function ControlPanelView() {
                             }
                           }}
                           className={cn("w-full mt-auto group font-bold text-xs rounded-xl shadow-sm transition-all",
-                            isExpired ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-neutral-50 hover:bg-sky-50 border border-neutral-200 hover:border-sky-200 text-neutral-700"
+                            isExpired ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-neutral-50 hover:bg-brand-light/10 border border-neutral-200 hover:border-brand-light/30 text-neutral-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-brand/20"
                           )}
                           variant={isExpired ? "danger" : "ghost"}
                         >
